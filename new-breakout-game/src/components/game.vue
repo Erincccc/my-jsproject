@@ -2,11 +2,13 @@
 import { ref, onMounted} from 'vue';
 import inputBox from './inputBox.vue'
 import rankTable from './rankTable.vue'
+import endBox from './endBox.vue';
 
 export default {
     components :{
         inputBox,
         rankTable,
+        endBox,
     },
     data(){
         return{
@@ -41,8 +43,10 @@ export default {
             bricks : [],
             animationId: null ,
             score : 0,
-            player: [],
-
+            playerName: '',
+            players: [],
+            gameStarted: false,
+            gameOver: false,
         }
     },
     methods: {
@@ -120,6 +124,9 @@ export default {
                      }
                 })
             });
+            if (this.ball.y + this.ball.size > this.$refs.canvas.height) {
+                this.stopAnimation()
+            }
         },
         drawScore() {
             const ctx = this.$refs.canvas.getContext('2d');
@@ -155,10 +162,10 @@ export default {
         update() {
             const ctx = this.$refs.canvas.getContext('2d');
             ctx.clearRect(0,0,this.$refs.canvas.width, this.$refs.canvas.height)
+            this.animationId = requestAnimationFrame(this.update);
             this.moveBall();
             this.movePaddle();
             this.draw()
-            this.animationId = requestAnimationFrame(this.update);
         },
         initialisatePage(){
             const canvas = this.$refs.canvas;
@@ -193,18 +200,24 @@ export default {
     },
         stopAnimation() {
             cancelAnimationFrame(this.animationId);
-            if(this.player === []){
-                this.player.push(this.score)
-            }
+            this.gameOver = true;
          },
-        startAnimation() {
+        startAnimation(playerName) {
+            console.log(playerName);
+            this.playerName = playerName
+            this.gameStarted = true;
             cancelAnimationFrame(this.animationId);
             this.initialisatePage()
             this.update();
         },
-        handleInputSubmit(data) {
-            this.player = [];
-            this.player.push(data);
+        submitScore(score){
+            this.players.push( {name: this.playerName, score});
+            this.players.sort((a, b) => b.score - a.score);
+            this.gameOver = false;
+            this.gameStarted = false;
+            console.log(score);
+            const ctx = this.$refs.canvas.getContext('2d');
+            ctx.clearRect(0,0,this.$refs.canvas.width, this.$refs.canvas.height)
         },
 
 
@@ -230,14 +243,46 @@ export default {
 </script>
 
 <template>
-    <div class="relative">
-        <canvas ref="canvas" class="bg-slate-100 block rounded-md" width="800" height="600"></canvas>
-        <button class="btn btn-info bg-sky-600 hover:bg-sky-700 border-transparent  shadow-md"  @click="startAnimation">start!</button>
-        <button class="btn btn-info bg-sky-600 hover:bg-sky-700 border-transparent  shadow-md"  @click="stopAnimation">stop!</button>
-        <inputBox class="absolute" @input-submit="handleInputSubmit"></inputBox>
-        <rankTable class="absolute" :data="player"></rankTable>
+<div class="navbar bg-sky-900 w-screen text-neutral-content mb-2 shadow-lg">
+    <div class="flex-none ">
+    <div class="drawer" >
+        <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content">
+                <label for="my-drawer" class="btn btn-square btn-ghost">
+                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </label>
+            </div>
+        <div class="drawer-side">
+            <label for="my-drawer" class="drawer-overlay"></label>
+                <div class=" p-4 w-80 h-full bg-slate-300 text-base-content">
+                    <h2 class="font-bold">How To Play:</h2>
+                    <p>
+                     Use your right and left keys to move the paddle to bounce the ball up
+                     and break the blocks.
+                    </p >
+                    <p>If you miss the ball, your score and the blocks will reset.</p>
+                </div>
+        </div>
+  </div>
+</div>
+  <div class="flex-1">
+    <h1 class="text-4xl text-[#fff]">Breakout!</h1>
+  </div>
+  <div class="flex-none">
+    <rankTable  :players="players"></rankTable>    
+  </div>
+</div>
+    <div class="container items-center flex justify-center">
+        <canvas ref="canvas" class="bg-slate-100 rounded-md " width="800" height="600"></canvas>  
+        <div class="absolute top-1/2 left-2/5 transform translate-x-1/5 -translate-y-1/3" v-if="!gameStarted">
+            <inputBox @start-game="startAnimation"></inputBox>
+        </div>  
+    </div>
+     <div>
+        <endBox :score="score"  @submit-score="submitScore" :gameOver="gameOver"/>
     </div>
 </template>
 
 <style scoped>
 </style>
+
