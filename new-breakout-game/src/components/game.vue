@@ -24,7 +24,7 @@ export default {
             paddle: {
                 x: 0,
                 y: 0,
-                w: 400,
+                w: 100,
                 h: 10,
                 speed: 8,
                 dx: 0,
